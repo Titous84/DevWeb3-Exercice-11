@@ -57,18 +57,36 @@ function AppContent() {
         <Boutique />
       </main>
 
-      {/* Panneau latéral du panier (s'affiche quand on clique sur l'icône) */}
-      {afficherPanier && (
-        <div className="fixed right-0 top-0 h-full w-96 overflow-y-auto border-l border-gray-300 bg-gray-50 p-6 shadow-xl transition-all">
+      {/* Panneau latéral du panier (slide qui apparaît sur la droite) */}
+      <div
+        className={`fixed inset-0 z-40 flex justify-end ${
+          afficherPanier ? 'pointer-events-auto' : 'pointer-events-none'
+        }`}
+        aria-hidden={!afficherPanier}
+      >
+        <div
+          className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ease-out ${
+            afficherPanier ? 'opacity-100' : 'opacity-0'
+          }`}
+          onClick={() => setAfficherPanier(false)}
+        />
+
+        <aside
+          className={`relative h-full w-96 overflow-y-auto border-l border-gray-200 bg-gray-50 p-6 shadow-xl transition-transform duration-300 ease-out ${
+            afficherPanier ? 'translate-x-0' : 'translate-x-full'
+          }`}
+          role="dialog"
+          aria-label="Contenu du panier"
+        >
           <button
             onClick={() => setAfficherPanier(false)}
-            className="mb-4 text-sm text-gray-600 hover:underline"
+            className="mb-4 text-sm text-gray-600 transition-colors hover:text-gray-900 hover:underline"
           >
             ✖ Fermer
           </button>
           <Panier />
-        </div>
-      )}
+        </aside>
+      </div>
     </div>
   );
 }
