@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ShoppingCart } from 'lucide-react'; // pour avoir l'icône de panier (merci chatGPT)
 import { PanierProvider, usePanier } from './context/PanierContext';
 import Boutique from './pages/Boutique';
@@ -9,8 +9,13 @@ function AppContent() {
   const [notificationVisible, setNotificationVisible] = useState(false);
   const { panier, dernierAjout, effacerDernierAjout } = usePanier();
 
-  const totalArticles = panier.reduce((total, article) => total + article.quantite, 0);
+  // Calcul du nombre total d'articles du panier
+  const totalArticles = useMemo(
+    () => panier.reduce((total, article) => total + article.quantite, 0),
+    [panier],
+  );
 
+  // Affichage automatique d'une notification quand on ajoute un article
   useEffect(() => {
     if (!dernierAjout) return;
 
@@ -22,6 +27,23 @@ function AppContent() {
 
     return () => window.clearTimeout(timer);
   }, [dernierAjout, effacerDernierAjout]);
+
+  // Ferme le panier avec la touche Echap (plus pratique)
+  useEffect(() => {
+    if (!afficherPanier) return;
+
+    const gererClavier = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setAfficherPanier(false);
+      }
+    };
+
+    window.addEventListener('keydown', gererClavier);
+    return () => window.removeEventListener('keydown', gererClavier);
+  }, [afficherPanier]);
+
+  const ouvrirPanier = useCallback(() => setAfficherPanier(true), []);
+  const fermerPanier = useCallback(() => setAfficherPanier(false), []);
 
   return (
     <div className="min-h-screen bg-white">
@@ -38,9 +60,10 @@ function AppContent() {
 
         {/* Bouton pour ouvrir ou fermer le panier */}
         <button
-          onClick={() => setAfficherPanier(!afficherPanier)}
-          className="relative flex items-center gap-2 rounded-lg p-2 hover:bg-gray-200"
+          onClick={afficherPanier ? fermerPanier : ouvrirPanier}
+          className="relative flex items-center gap-2 rounded-lg p-2 transition hover:bg-gray-200"
           title="Voir le panier"
+          type="button"
         >
           <ShoppingCart className="h-6 w-6 text-gray-800" />
           <span className="font-medium">Panier</span>
@@ -59,7 +82,7 @@ function AppContent() {
 
       {/* Panneau latéral du panier (slide qui apparaît sur la droite) */}
       <div
-        className={`fixed inset-0 z-40 flex justify-end ${
+        className={`fixed inset-0 z-40 flex justify-end transition ${
           afficherPanier ? 'pointer-events-auto' : 'pointer-events-none'
         }`}
         aria-hidden={!afficherPanier}
@@ -68,19 +91,20 @@ function AppContent() {
           className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ease-out ${
             afficherPanier ? 'opacity-100' : 'opacity-0'
           }`}
-          onClick={() => setAfficherPanier(false)}
+          onClick={fermerPanier}
         />
 
         <aside
-          className={`relative h-full w-96 overflow-y-auto border-l border-gray-200 bg-gray-50 p-6 shadow-xl transition-transform duration-300 ease-out ${
+          className={`relative flex h-full w-full max-w-md transform flex-col overflow-y-auto border-l border-gray-200 bg-gray-50 p-6 shadow-xl transition-transform duration-300 ease-out ${
             afficherPanier ? 'translate-x-0' : 'translate-x-full'
           }`}
           role="dialog"
           aria-label="Contenu du panier"
         >
           <button
-            onClick={() => setAfficherPanier(false)}
-            className="mb-4 text-sm text-gray-600 transition-colors hover:text-gray-900 hover:underline"
+            onClick={fermerPanier}
+            className="mb-4 self-end text-sm text-gray-600 transition-colors hover:text-gray-900 hover:underline"
+            type="button"
           >
             ✖ Fermer
           </button>
