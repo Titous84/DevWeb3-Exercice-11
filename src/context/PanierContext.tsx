@@ -1,4 +1,10 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useState,
+  type ReactNode,
+} from 'react';
 import type { Bierre } from '../types/Bierre';
 import type { ArticlePanier } from '../types/Panier';
 
@@ -7,6 +13,8 @@ type PanierContextType = {
   panier: ArticlePanier[];
   ajouterBiere: (biere: Bierre) => void;
   retirerBiere: (id: number) => void;
+  dernierAjout: string | null;
+  effacerDernierAjout: () => void;
 };
 
 // Création du contexte global
@@ -16,6 +24,7 @@ const PanierContext = createContext<PanierContextType | undefined>(undefined);
 export const PanierProvider = ({ children }: { children: ReactNode }) => {
   // État local du panier (tableau de bières)
   const [panier, setPanier] = useState<ArticlePanier[]>([]);
+  const [dernierAjout, setDernierAjout] = useState<string | null>(null);
 
   // Ajoute une bière au panier (ou augmente sa quantité si déjà présente)
   const ajouterBiere = (biere: Bierre) => {
@@ -30,6 +39,7 @@ export const PanierProvider = ({ children }: { children: ReactNode }) => {
       // Sinon on l'ajoute avec une quantité initiale de 1
       return [...prev, { ...biere, quantite: 1 }];
     });
+    setDernierAjout(biere.nom);
   };
 
   // Retire une bière du panier (décrémente ou supprime)
@@ -48,9 +58,13 @@ export const PanierProvider = ({ children }: { children: ReactNode }) => {
     });
   };
 
+  const effacerDernierAjout = useCallback(() => setDernierAjout(null), []);
+
   // On rend le contexte accessible aux enfants via le Provider
   return (
-    <PanierContext.Provider value={{ panier, ajouterBiere, retirerBiere }}>
+    <PanierContext.Provider
+      value={{ panier, ajouterBiere, retirerBiere, dernierAjout, effacerDernierAjout }}
+    >
       {children}
     </PanierContext.Provider>
   );
