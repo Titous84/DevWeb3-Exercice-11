@@ -1,21 +1,21 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ShoppingCart } from 'lucide-react'; // pour avoir l'icône de panier (merci chatGPT)
+import { useEffect, useMemo, useState } from 'react';
+import { ShoppingCart } from 'lucide-react';
 import { PanierProvider, usePanier } from './context/PanierContext';
 import Boutique from './pages/Boutique';
-import Panier from './components/Panier';
+import CartDrawer from './components/cart/CartDrawer';
 
-function AppContent() {
-  const [afficherPanier, setAfficherPanier] = useState(false);
+function AppShell() {
+  const [panierOuvert, setPanierOuvert] = useState(false);
   const [notificationVisible, setNotificationVisible] = useState(false);
   const { panier, dernierAjout, effacerDernierAjout } = usePanier();
 
-  // Calcul du nombre total d'articles du panier
+  // Calcul du nombre total d'articles dans le panier
   const totalArticles = useMemo(
     () => panier.reduce((total, article) => total + article.quantite, 0),
     [panier],
   );
 
-  // Affichage automatique d'une notification quand on ajoute un article
+  // Affiche une notification lorsque la dernière bière ajoutée change
   useEffect(() => {
     if (!dernierAjout) return;
 
@@ -23,103 +23,77 @@ function AppContent() {
     const timer = window.setTimeout(() => {
       setNotificationVisible(false);
       effacerDernierAjout();
-    }, 2500);
+    }, 2200);
 
     return () => window.clearTimeout(timer);
   }, [dernierAjout, effacerDernierAjout]);
 
-  // Ferme le panier avec la touche Echap (plus pratique)
+  // Ferme le panier avec la touche Echap
   useEffect(() => {
-    if (!afficherPanier) return;
+    if (!panierOuvert) return;
 
     const gererClavier = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
-        setAfficherPanier(false);
+        setPanierOuvert(false);
       }
     };
 
     window.addEventListener('keydown', gererClavier);
     return () => window.removeEventListener('keydown', gererClavier);
-  }, [afficherPanier]);
-
-  const ouvrirPanier = useCallback(() => setAfficherPanier(true), []);
-  const fermerPanier = useCallback(() => setAfficherPanier(false), []);
+  }, [panierOuvert]);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Notification lorsqu'un nouvel article est ajouté */}
+    <div className="min-h-screen bg-slate-950">
+      <div className="absolute inset-0 -z-10 bg-[radial-gradient(circle_at_top,_rgba(45,212,191,0.18),_transparent_55%)]" />
+
+      {/* Notification d'ajout au panier */}
       {notificationVisible && dernierAjout && (
-        <div className="fixed top-20 right-8 z-50 rounded-lg bg-green-600 px-4 py-2 text-sm font-medium text-white shadow-lg">
-          {dernierAjout} a été ajouté au panier !
+        <div className="fixed right-6 top-6 z-50 flex items-center gap-3 rounded-2xl bg-emerald-500 px-5 py-3 text-sm font-medium text-white shadow-xl">
+          <span className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-emerald-600 text-xs uppercase tracking-[0.24em]">
+            +1
+          </span>
+          {dernierAjout} a été ajouté au panier
         </div>
       )}
 
-      {/* Barre supérieure */}
-      <header className="flex items-center justify-between bg-gray-50 px-8 py-4 shadow-md">
-        <h1 className="text-2xl font-bold">🍻 Boutique de Bières</h1>
+      <div className="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-12 px-6 pb-16 pt-10 md:px-12">
+        <header className="flex items-center justify-between rounded-3xl border border-white/10 bg-white/5 px-8 py-5 backdrop-blur">
+          <div className="flex flex-col">
+            <span className="text-xs uppercase tracking-[0.3em] text-emerald-200">DevWeb3</span>
+            <h1 className="text-2xl font-semibold text-white">La Route des Bières</h1>
+          </div>
 
-        {/* Bouton pour ouvrir ou fermer le panier */}
-        <button
-          onClick={afficherPanier ? fermerPanier : ouvrirPanier}
-          className="relative flex items-center gap-2 rounded-lg p-2 transition hover:bg-gray-200"
-          title="Voir le panier"
-          type="button"
-        >
-          <ShoppingCart className="h-6 w-6 text-gray-800" />
-          <span className="font-medium">Panier</span>
-          {totalArticles > 0 && (
-            <span className="absolute -right-2 -top-2 flex h-6 min-w-[1.5rem] items-center justify-center rounded-full bg-red-500 px-1 text-xs font-bold text-white">
-              {totalArticles}
-            </span>
-          )}
-        </button>
-      </header>
-
-      {/* Contenu principal : la liste des bières */}
-      <main className="p-8">
-        <Boutique />
-      </main>
-
-      {/* Panneau latéral du panier (slide qui apparaît sur la droite) */}
-      <div
-        className={`fixed inset-0 z-40 flex justify-end transition ${
-          afficherPanier ? 'pointer-events-auto' : 'pointer-events-none'
-        }`}
-        aria-hidden={!afficherPanier}
-      >
-        <div
-          className={`absolute inset-0 bg-black/30 transition-opacity duration-300 ease-out ${
-            afficherPanier ? 'opacity-100' : 'opacity-0'
-          }`}
-          onClick={fermerPanier}
-        />
-
-        <aside
-          className={`relative flex h-full w-full max-w-md transform flex-col overflow-y-auto border-l border-gray-200 bg-gray-50 p-6 shadow-xl transition-transform duration-300 ease-out ${
-            afficherPanier ? 'translate-x-0' : 'translate-x-full'
-          }`}
-          role="dialog"
-          aria-label="Contenu du panier"
-        >
+          {/* Bouton d'ouverture du panier */}
           <button
-            onClick={fermerPanier}
-            className="mb-4 self-end text-sm text-gray-600 transition-colors hover:text-gray-900 hover:underline"
+            onClick={() => setPanierOuvert(true)}
+            className="relative flex items-center gap-3 rounded-full bg-white px-5 py-2 text-sm font-semibold uppercase tracking-[0.22em] text-slate-900 shadow-lg transition hover:-translate-y-0.5 hover:shadow-xl"
             type="button"
           >
-            ✖ Fermer
+            <ShoppingCart className="h-4 w-4" />
+            Panier
+            {totalArticles > 0 && (
+              <span className="absolute -right-2 -top-2 flex h-7 w-7 items-center justify-center rounded-full bg-emerald-500 text-xs font-bold text-white shadow-lg">
+                {totalArticles}
+              </span>
+            )}
           </button>
-          <Panier />
-        </aside>
+        </header>
+
+        <main className="flex-1 pb-12">
+          <Boutique />
+        </main>
       </div>
+
+      <CartDrawer ouvert={panierOuvert} onFermer={() => setPanierOuvert(false)} />
     </div>
   );
 }
 
-// Composant racine : englobe toute l'application
+// Composant racine qui encapsule l'application avec le contexte du panier
 export default function App() {
   return (
     <PanierProvider>
-      <AppContent />
+      <AppShell />
     </PanierProvider>
   );
 }

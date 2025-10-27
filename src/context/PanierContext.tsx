@@ -2,6 +2,7 @@ import {
   createContext,
   useCallback,
   useContext,
+  useMemo,
   useState,
   type ReactNode,
 } from 'react';
@@ -13,6 +14,8 @@ type PanierContextType = {
   panier: ArticlePanier[];
   ajouterBiere: (biere: Bierre) => void;
   retirerBiere: (id: number) => void;
+  retirerArticle: (id: number) => void;
+  viderPanier: () => void;
   dernierAjout: string | null;
   effacerDernierAjout: () => void;
 };
@@ -27,7 +30,7 @@ export const PanierProvider = ({ children }: { children: ReactNode }) => {
   const [dernierAjout, setDernierAjout] = useState<string | null>(null);
 
   // Ajoute une bière au panier (ou augmente sa quantité si déjà présente)
-  const ajouterBiere = (biere: Bierre) => {
+  const ajouterBiere = useCallback((biere: Bierre) => {
     setPanier((prev) => {
       const existante = prev.find((b) => b.id === biere.id);
       if (existante) {
@@ -40,10 +43,10 @@ export const PanierProvider = ({ children }: { children: ReactNode }) => {
       return [...prev, { ...biere, quantite: 1 }];
     });
     setDernierAjout(biere.nom);
-  };
+  }, []);
 
   // Retire une bière du panier (décrémente ou supprime)
-  const retirerBiere = (id: number) => {
+  const retirerBiere = useCallback((id: number) => {
     setPanier((prev) => {
       const existante = prev.find((b) => b.id === id);
       if (!existante) return prev;
@@ -56,18 +59,41 @@ export const PanierProvider = ({ children }: { children: ReactNode }) => {
       // Si une seule unité, on retire la bière complètement
       return prev.filter((b) => b.id !== id);
     });
-  };
+  }, []);
+
+  // Retire complètement la bière du panier sans toucher aux autres
+  const retirerArticle = useCallback((id: number) => {
+    setPanier((prev) => prev.filter((b) => b.id !== id));
+  }, []);
+
+  // Vide entièrement le panier
+  const viderPanier = useCallback(() => setPanier([]), []);
 
   const effacerDernierAjout = useCallback(() => setDernierAjout(null), []);
 
-  // On rend le contexte accessible aux enfants via le Provider
-  return (
-    <PanierContext.Provider
-      value={{ panier, ajouterBiere, retirerBiere, dernierAjout, effacerDernierAjout }}
-    >
-      {children}
-    </PanierContext.Provider>
+  const valeur = useMemo(
+    () => ({
+      panier,
+      ajouterBiere,
+      retirerBiere,
+      retirerArticle,
+      viderPanier,
+      dernierAjout,
+      effacerDernierAjout,
+    }),
+    [
+      panier,
+      ajouterBiere,
+      retirerBiere,
+      retirerArticle,
+      viderPanier,
+      dernierAjout,
+      effacerDernierAjout,
+    ],
   );
+
+  // On rend le contexte accessible aux enfants via le Provider
+  return <PanierContext.Provider value={valeur}>{children}</PanierContext.Provider>;
 };
 
 // Hook personnalisé pour accéder facilement au contexte depuis d'autres fichiers
